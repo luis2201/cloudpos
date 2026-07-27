@@ -1,0 +1,1 @@
+<tr><td colspan="{{ $columns }}"><div class="empty-state"><span><x-icon :name="$icon" /></span><strong>No hay {{ $label }}</strong><small>Agrega el primer registro o cambia los filtros.</small></div></td></tr>

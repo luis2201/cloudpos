@@ -1,0 +1,76 @@
+name: cloudpos
+
+services:
+  app:
+    container_name: cloudpos-app
+    build:
+      context: .
+      args:
+        APP_UID: ${APP_UID:-1000}
+        APP_GID: ${APP_GID:-1000}
+    environment:
+      APP_NAME: ${APP_NAME:-CloudPOS}
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      APP_LOCALE: es
+      APP_FALLBACK_LOCALE: es
+      APP_TIMEZONE: America/Guayaquil
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-cloudpos}
+      DB_USERNAME: ${DB_USERNAME:-cloudpos}
+      DB_PASSWORD: ${DB_PASSWORD:-cloudpos_secret}
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      SESSION_DRIVER: database
+    ports:
+      - "${APP_PORT:-8080}:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - cloudpos
+
+  mysql:
+    container_name: cloudpos-mysql
+    image: mysql:8.4.10
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-cloudpos}
+      MYSQL_USER: ${DB_USERNAME:-cloudpos}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-cloudpos_secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret}
+      TZ: America/Guayaquil
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --log-bin-trust-function-creators=1
+    ports:
+      - "${DB_FORWARD_PORT:-3307}:3306"
+    volumes:
+      - cloudpos_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - cloudpos
+
+networks:
+  cloudpos:
+    name: cloudpos-network
+
+volumes:
+  cloudpos_mysql_data:
+    name: cloudpos-mysql-data
